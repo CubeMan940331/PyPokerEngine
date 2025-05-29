@@ -9,13 +9,14 @@ from pypokerengine.engine.pay_info import PayInfo
 from pypokerengine.engine.data_encoder import DataEncoder
 from pypokerengine.engine.poker_constants import PokerConstants as Const
 
-def restore_game_state(round_state):
+def restore_game_state(round_state:dict):
     return {
             "round_count": round_state["round_count"],
             "small_blind_amount": round_state["small_blind_amount"],
             "street": _street_flg_translator[round_state["street"]],
             "next_player": round_state["next_player"],
-            "table": _restore_table(round_state)
+            "table": _restore_table(round_state),
+            "raise_cnt": round_state.get("raise_cnt",0)
             }
 
 def attach_hole_card_from_deck(game_state, uuid):
@@ -49,7 +50,7 @@ def replace_community_card(game_state, community_card):
     deepcopy["table"]._community_card = community_card
     return deepcopy
 
-def deepcopy_game_state(game_state):
+def deepcopy_game_state(game_state:dict):
     tabledeepcopy = Table.deserialize(game_state["table"].serialize())
     return {
             "round_count": game_state["round_count"],
@@ -57,7 +58,7 @@ def deepcopy_game_state(game_state):
             "street": game_state["street"],
             "next_player": game_state["next_player"],
             "table": tabledeepcopy,
-            "raise_cnt": game_state["raise_cnt"]
+            "raise_cnt": game_state.get("raise_cnt",0)
             }
 
 _street_flg_translator = {
