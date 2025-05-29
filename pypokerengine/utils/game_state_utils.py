@@ -56,7 +56,8 @@ def deepcopy_game_state(game_state):
             "small_blind_amount": game_state["small_blind_amount"],
             "street": game_state["street"],
             "next_player": game_state["next_player"],
-            "table": tabledeepcopy
+            "table": tabledeepcopy,
+            "raise_cnt": game_state["raise_cnt"]
             }
 
 _street_flg_translator = {
