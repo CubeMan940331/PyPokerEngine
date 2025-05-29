@@ -43,7 +43,10 @@ class BasePokerPlayer(object):
     self.uuid = uuid
 
   def respond_to_ask(self, message):
-    """Called from Dealer when ask message received from RoundManager"""
+    """
+    Called from Dealer when ask message received from RoundManager\\
+    parse message and call `self.declare_action()`
+    """
     valid_actions, hole_card, round_state = self.__parse_ask_message(message)
     return self.declare_action(valid_actions, hole_card, round_state)
 

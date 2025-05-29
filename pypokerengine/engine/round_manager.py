@@ -1,5 +1,6 @@
 from functools import reduce
 
+from pypokerengine.engine.seats import Seats
 from pypokerengine.engine.table import Table
 from pypokerengine.engine.player import Player
 from pypokerengine.engine.pay_info import PayInfo
@@ -11,10 +12,10 @@ from pypokerengine.engine.message_builder import MessageBuilder
 class RoundManager:
 
   @classmethod
-  def start_new_round(self, round_count, small_blind_amount, ante_amount, table):
+  def start_new_round(self, round_count:int, small_blind_amount, ante_amount, table:Table):
     _state = self.__gen_initial_state(round_count, small_blind_amount, table)
     state = self.__deep_copy_state(_state)
-    table = state["table"]
+    table:Table = state["table"]
 
     table.deck.shuffle()
     self.__correct_ante(ante_amount, table.seats.players)
@@ -25,19 +26,20 @@ class RoundManager:
     return state, start_msg + street_msgs
 
   @classmethod
-  def apply_action(self, original_state, action, bet_amount):
+  def apply_action(self, original_state:dict, action, bet_amount):
     state = self.__deep_copy_state(original_state)
     state = self.__update_state_by_action(state, action, bet_amount)
     update_msg = self.__update_message(state, action, bet_amount)
+    table:Table = state["table"]
     if self.__is_everyone_agreed(state):
-      [player.save_street_action_histories(state["street"]) for player in state["table"].seats.players]
+      [player.save_street_action_histories(state["street"]) for player in table.seats.players]
       state["street"] += 1
       state, street_msgs = self.__start_street(state)
       return state, [update_msg] + street_msgs
     else:
-      state["next_player"] = state["table"].next_ask_waiting_player_pos(state["next_player"])
+      state["next_player"] = table.next_ask_waiting_player_pos(state["next_player"])
       next_player_pos = state["next_player"]
-      next_player = state["table"].seats.players[next_player_pos]
+      next_player:Player = table.seats.players[next_player_pos]
       ask_message = (next_player.uuid, MessageBuilder.build_ask_message(next_player_pos, state))
       return state, [update_msg, ask_message]
 
@@ -70,6 +72,9 @@ class RoundManager:
 
   @classmethod
   def __start_street(self, state):
+    '''
+    return a msg
+    '''
     next_player_pos = state["table"].next_ask_waiting_player_pos(state["table"].sb_pos()-1)
     state["next_player"] = next_player_pos
     street = state["street"]
@@ -160,6 +165,7 @@ class RoundManager:
       self.__chip_transaction(player, bet_amount)
       player.add_action_history(Const.Action.CALL, bet_amount)
     elif action == 'raise':
+      state["raise_cnt"]+=1
       self.__chip_transaction(player, bet_amount)
       add_amount = bet_amount - ActionChecker.agree_amount(state["table"].seats.players)
       player.add_action_history(Const.Action.RAISE, bet_amount, add_amount)
@@ -210,22 +216,36 @@ class RoundManager:
         or player.pay_info.status in [PayInfo.FOLDED, PayInfo.ALLIN]
 
   @classmethod
-  def __gen_initial_state(self, round_count, small_blind_amount, table):
+  def __gen_initial_state(self, round_count:int, small_blind_amount, table:Table) -> dict:
+    '''
+    generate `state`  
+    ```python
+    {
+      "round_count": round_count:int,
+      "smallblind_amount": small_blind_amount,
+      "street": street:int,
+      "next_player": pos:int,
+      "table": table:Table
+    }
+    ```
+    '''
     return {
         "round_count": round_count,
         "small_blind_amount": small_blind_amount,
         "street": Const.Street.PREFLOP,
         "next_player": table.next_ask_waiting_player_pos(table.bb_pos()),
-        "table": table
+        "table": table,
+        "raise_cnt": 0
     }
 
   @classmethod
-  def __deep_copy_state(self, state):
-    table_deepcopy = Table.deserialize(state["table"].serialize())
+  def __deep_copy_state(self, state) -> dict:
+    table_deepcopy:Table = Table.deserialize(state["table"].serialize())
     return {
         "round_count": state["round_count"],
         "small_blind_amount": state["small_blind_amount"],
         "street": state["street"],
         "next_player": state["next_player"],
-        "table": table_deepcopy
+        "table": table_deepcopy,
+        "raise_cnt": state["raise_cnt"]
         }

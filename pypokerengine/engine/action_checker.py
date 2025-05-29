@@ -1,4 +1,6 @@
 from functools import reduce
+from pypokerengine.engine.player import Player
+from pypokerengine.engine.poker_constants import PokerConstants as Const
 
 class ActionChecker:
 
@@ -33,15 +35,26 @@ class ActionChecker:
 
 
   @classmethod
-  def legal_actions(self, players, player_pos, sb_amount):
-    min_raise = self.__min_raise_amount(players, sb_amount)
+  def legal_actions(self, players, player_pos, sb_amount, street:int, raise_cnt) -> list[dict]:
+    # calculate raise_to_amount according "limit"
+    raise_to_amount = self.agree_amount(players) + (sb_amount*2 if (street==Const.Street.PREFLOP or street==Const.Street.FLOP) else sb_amount*4)
     max_raise = players[player_pos].stack + players[player_pos].paid_sum()
-    if max_raise < min_raise:
-      min_raise = max_raise = -1
+    no_more_raise=False
+    if(
+      (street==Const.Street.PREFLOP or street==Const.Street.FLOP) and
+      raise_cnt>=3
+    ): no_more_raise=True
+    elif(
+      (street==Const.Street.TURN or street==Const.Street.RIVER) and
+      raise_cnt>=4
+    ): no_more_raise=True
+
+    if raise_to_amount > max_raise or no_more_raise: raise_to_amount = -1
+    
     return [
         { "action" : "fold" , "amount" : 0 },
         { "action" : "call" , "amount" : self.agree_amount(players) },
-        { "action" : "raise", "amount" : { "min": min_raise, "max": max_raise } }
+        { "action" : "raise", "amount" : raise_to_amount }
     ]
 
   @classmethod
@@ -77,7 +90,18 @@ class ActionChecker:
     return player.stack < amount - player.paid_sum()
 
   @classmethod
-  def __fetch_last_raise(self, players):
+  def __fetch_last_raise(self, players:list[Player]):
+    '''
+    return max raise_history or None
+    ```python
+    {
+      "action": "raise",
+      "amount": bet_amount,
+      "paid": bet_amount - self.paid_sum(),
+      "add_amount" : add_amount
+    }
+    ```
+    '''
     all_histories = [p.action_histories for p in players]
     all_histories = reduce(lambda acc, e: acc + e, all_histories)  # flatten
     raise_histories = [h for h in all_histories if h["action"] in ["RAISE", "SMALLBLIND", "BIGBLIND"]]

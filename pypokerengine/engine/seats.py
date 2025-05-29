@@ -4,7 +4,7 @@ from pypokerengine.engine.player import Player
 class Seats:
 
   def __init__(self):
-    self.players = []
+    self.players:list[Player] = []
 
   def sitdown(self, player):
     self.players.append(player)

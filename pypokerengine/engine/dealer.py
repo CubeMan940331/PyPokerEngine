@@ -7,6 +7,8 @@ from pypokerengine.engine.player import Player
 from pypokerengine.engine.round_manager import RoundManager
 from pypokerengine.engine.message_builder import MessageBuilder
 
+from pypokerengine.players import BasePokerPlayer
+
 class Dealer:
 
   def __init__(self, small_blind_amount=None, initial_stack=None, ante=None):
@@ -16,19 +18,19 @@ class Dealer:
     self.uuid_list = self.__generate_uuid_list()
     self.message_handler = MessageHandler()
     self.message_summarizer = MessageSummarizer(verbose=0)
-    self.table = Table()
+    self.table:Table = Table()
     self.blind_structure = {}
 
-  def register_player(self, player_name, algorithm):
+  def register_player(self, player_name:str, algorithm:BasePokerPlayer):
     self.__config_check()
     uuid = self.__escort_player_to_table(player_name)
     algorithm.set_uuid(uuid)
     self.__register_algorithm_to_message_handler(uuid, algorithm)
 
   def set_verbose(self, verbose):
-      self.message_summarizer.verbose = verbose
+    self.message_summarizer.verbose = verbose
 
-  def start_game(self, max_round):
+  def start_game(self, max_round:int):
     table = self.table
     self.__notify_game_start(max_round)
     ante, sb_amount = self.ante, self.small_blind_amount
@@ -40,7 +42,7 @@ class Dealer:
       table.shift_dealer_btn()
     return self.__generate_game_result(max_round, table.seats)
 
-  def play_round(self, round_count, blind_amount, ante, table):
+  def play_round(self, round_count:int, blind_amount, ante, table:Table):
     state, msgs = RoundManager.start_new_round(round_count, blind_amount, ante, table)
     while True:
       self.__message_check(msgs, state["street"])
@@ -71,7 +73,7 @@ class Dealer:
       ante, sb_amount = update_info["ante"], update_info["small_blind"]
     return ante, sb_amount
 
-  def __register_algorithm_to_message_handler(self, uuid, algorithm):
+  def __register_algorithm_to_message_handler(self, uuid, algorithm:BasePokerPlayer):
     self.message_handler.register_algorithm(uuid, algorithm)
 
   def __escort_player_to_table(self, player_name):
@@ -96,7 +98,7 @@ class Dealer:
     if invalid:
       raise Exception("Last message is not ask type. : %s" % msgs)
 
-  def __publish_messages(self, msgs):
+  def __publish_messages(self, msgs:dict):
     for address, msg in msgs[:-1]:
       self.message_handler.process_message(address, msg)
     self.message_summarizer.summarize_messages(msgs)
@@ -171,7 +173,7 @@ class Dealer:
   def __generate_uuid_list(self):
     return [self.__generate_uuid() for _ in range(100)]
 
-  def __generate_uuid(self):
+  def __generate_uuid(self) -> str:
     uuid_size = 22
     chars = [chr(code) for code in range(97,123)]
     return "".join([random.choice(chars) for _ in range(uuid_size)])
@@ -179,13 +181,17 @@ class Dealer:
 class MessageHandler:
 
   def __init__(self):
-    self.algo_owner_map = {}
+    self.algo_owner_map:dict[str:BasePokerPlayer] = {}
 
-  def register_algorithm(self, uuid, algorithm):
+  def register_algorithm(self, uuid:str, algorithm:BasePokerPlayer):
     self.algo_owner_map[uuid] = algorithm
 
-  def process_message(self, address, msg):
-    receivers = self.__fetch_receivers(address)
+  def process_message(self, address, msg:dict):
+    '''
+    if `msg["type"]` is `"ask"`, call `BasePlayer` method `respond_to_ask(msg["message"])`\\
+    if `msg["type"]` is `"notification"`, call `BasePlayer` method `receive_notification(msg["message"])`
+    '''
+    receivers:list[BasePokerPlayer] = self.__fetch_receivers(address)
     for receiver in receivers:
       if msg["type"] == 'ask':
         return receiver.respond_to_ask(msg["message"])
@@ -195,7 +201,7 @@ class MessageHandler:
         raise ValueError("Received unexpected message which type is [%s]" % msg["type"])
 
 
-  def __fetch_receivers(self, address):
+  def __fetch_receivers(self, address:str) -> list[BasePokerPlayer]:
     if address == -1:
       return self.algo_owner_map.values()
     else:

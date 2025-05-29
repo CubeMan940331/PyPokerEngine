@@ -45,7 +45,13 @@ class MessageBuilder:
     players = state["table"].seats.players
     player = players[player_pos]
     hole_card = DataEncoder.encode_player(player, holecard=True)["hole_card"]
-    valid_actions = ActionChecker.legal_actions(players, player_pos, state["small_blind_amount"])
+    valid_actions = ActionChecker.legal_actions(
+      players,
+      player_pos,
+      state["small_blind_amount"],
+      "street", #TODO
+      "raise_cnt" #TODO
+    )
     message = {
         "message_type" : self.ASK_MESSAGE,
         "hole_card": hole_card,
