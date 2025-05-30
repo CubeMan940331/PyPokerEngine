@@ -34,6 +34,7 @@ class RoundManager:
     if self.__is_everyone_agreed(state):
       [player.save_street_action_histories(state["street"]) for player in table.seats.players]
       state["street"] += 1
+      state["raise_cnt"]=0
       state, street_msgs = self.__start_street(state)
       return state, [update_msg] + street_msgs
     else:

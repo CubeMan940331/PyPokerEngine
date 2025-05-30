@@ -44,6 +44,8 @@ class Dealer:
 
   def play_round(self, round_count:int, blind_amount, ante, table:Table):
     state, msgs = RoundManager.start_new_round(round_count, blind_amount, ante, table)
+    # print("==== call Dealer.play_round ======")
+    # print(state)
     while True:
       self.__message_check(msgs, state["street"])
       if state["street"] != Const.Street.FINISHED:  # continue the round
@@ -52,6 +54,7 @@ class Dealer:
       else:  # finish the round after publish round result
         self.__publish_messages(msgs)
         break
+    # print("==== end of Dealer.play_round ====")
     return state["table"]
 
 

@@ -42,6 +42,8 @@ class MessageBuilder:
 
   @classmethod
   def build_ask_message(self, player_pos, state):
+    # print("==== call build_ask_message ====")
+    # print(state)
     players = state["table"].seats.players
     player = players[player_pos]
     hole_card = DataEncoder.encode_player(player, holecard=True)["hole_card"]
@@ -49,8 +51,8 @@ class MessageBuilder:
       players,
       player_pos,
       state["small_blind_amount"],
-      "street", #TODO
-      "raise_cnt" #TODO
+      state["street"],
+      state["raise_cnt"]
     )
     message = {
         "message_type" : self.ASK_MESSAGE,
@@ -59,6 +61,7 @@ class MessageBuilder:
         "round_state": DataEncoder.encode_round_state(state),
         "action_histories": DataEncoder.encode_action_histories(state["table"])
     }
+    # print("================================")
     return self.__build_ask_message(message)
 
   @classmethod

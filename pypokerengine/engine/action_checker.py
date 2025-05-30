@@ -36,8 +36,17 @@ class ActionChecker:
 
   @classmethod
   def legal_actions(self, players, player_pos, sb_amount, street:int, raise_cnt) -> list[dict]:
+    # print("==== call legal_action() ====")
+    # print("street :", street)
+    # print("small blind :",sb_amount)
+    # print("raise cnt :", raise_cnt)
+    
     # calculate raise_to_amount according "limit"
-    raise_to_amount = self.agree_amount(players) + (sb_amount*2 if (street==Const.Street.PREFLOP or street==Const.Street.FLOP) else sb_amount*4)
+    agree_amount = self.agree_amount(players)
+    # print("agree amount :", agree_amount)
+    
+    raise_to_amount = agree_amount + (sb_amount*2 if (street==Const.Street.PREFLOP or street==Const.Street.FLOP) else sb_amount*4)
+    
     max_raise = players[player_pos].stack + players[player_pos].paid_sum()
     no_more_raise=False
     if(
@@ -51,6 +60,7 @@ class ActionChecker:
 
     if raise_to_amount > max_raise or no_more_raise: raise_to_amount = -1
     
+    # print("=============================")
     return [
         { "action" : "fold" , "amount" : 0 },
         { "action" : "call" , "amount" : self.agree_amount(players) },
